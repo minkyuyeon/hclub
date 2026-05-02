@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  role         String    @default("user")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  profileInfo  String?   @map("profile_info")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  posts        Post[]
+  bookings     Booking[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String
+  thumbnail String?
+  authorId  String   @map("author_id")
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([authorId])
+  @@map("posts")
+}
+
+model Event {
+  id               String    @id @default(cuid())
+  title            String
+  slug             String    @unique
+  description      String
+  date             DateTime
+  location         String
+  ticketPrice      Int       @map("ticket_price")
+  totalTickets     Int       @map("total_tickets")
+  availableTickets Int       @map("available_tickets")
+  status           String    @default("draft")
+  thumbnail        String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  bookings         Booking[]
+
+  @@index([status, date])
+  @@map("events")
+}
+
+enum TableType {
+  BAN_VIP
+  BAN_DUNG
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CANCELLED
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  userId        String?       @map("user_id")
+  eventId       String        @map("event_id")
+  tableType     TableType     @default(BAN_VIP) @map("table_type")
+  guestCount    Int           @map("guest_count")
+  status        BookingStatus @default(PENDING)
+  customerName  String?       @map("customer_name")
+  customerPhone String?       @map("customer_phone")
+  customerEmail String?       @map("customer_email")
+  note          String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, status])
+  @@index([userId])
+  @@index([tableType])
+  @@index([createdAt])
+  @@map("bookings")
+}
